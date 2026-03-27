@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRT Dashboard — Journal de Trading</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
+
+<style>
+:root {
+  --bg:#080c12; --sf:#0d1520; --sf2:#111b2b; --bd:#1a2a3d;
+  --ac:#00d4ff; --a2:#ff6b35; --gn:#00e87a; --rd:#c8d4e0;
+  --yw:#ffd700; --tx:#c8d8eb; --mt:#3d5470; --radius:6px;
+  --font:'Segoe UI',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.018) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+
+.wrap{position:relative;z-index:1;max-width:1560px;margin:0 auto;padding:24px 28px;}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bd);padding-bottom:20px;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+.hd-left h1{font-size:30px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1;font-family:var(--font);}
+.hd-left h1 span{color:var(--ac);}
+.hd-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.status-pill{display:flex;align-items:center;gap:8px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;padding:6px 14px;font-size:11px;color:var(--mt);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--gn);box-shadow:0 0 8px var(--gn);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.btn-sync{background:transparent;border:1px solid var(--ac);color:var(--ac);font-family:var(--font);font-size:11px;padding:6px 16px;cursor:pointer;border-radius:4px;letter-spacing:1px;transition:all .2s;}
+.btn-sync:hover{background:var(--ac);color:var(--bg);}
+
+/* FILTER BAR */
+.filter-bar{background:var(--sf);border:1px solid var(--bd);border-radius:var(--radius);padding:16px 18px;margin-bottom:22px;display:flex;flex-direction:column;gap:10px;}
+.filter-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.filter-cat{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--mt);min-width:80px;flex-shrink:0;}
+.chips{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{background:var(--sf2);border:1px solid var(--bd);color:var(--mt);font-family:var(--font);font-size:10px;padding:4px 12px;border-radius:3px;cursor:pointer;transition:all .15s;letter-spacing:.5px;user-select:none;}
+.chip:hover{border-color:var(--ac);color:var(--tx);}
+.chip.on{border-color:var(--ac);color:var(--ac);background:rgba(0,212,255,.08);}
+.chip.on-green{border-color:var(--gn);color:var(--gn);background:rgba(0,232,122,.08);}
+.chip.on-orange{border-color:var(--a2);color:var(--a2);background:rgba(255,107,53,.08);}
+.filter-reset{margin-left:auto;background:transparent;border:1px solid var(--bd);color:var(--mt);font-family:var(--font);font-size:10px;padding:4px 12px;border-radius:3px;cursor:pointer;transition:all .2s;letter-spacing:.5px;}
+.filter-reset:hover{border-color:var(--a2);color:var(--a2);}
+
+/* KPIs */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px;}
+.kpi{background:var(--sf);border:1px solid var(--bd);border-radius:var(--radius);padding:16px 18px;position:relative;overflow:hidden;transition:transform .2s;}
+.kpi:hover{transform:translateY(-2px);}
+.kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--kc,var(--ac));}
+.kpi-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--mt);margin-bottom:8px;font-weight:600;}
+.kpi-value{font-size:26px;font-weight:800;color:var(--kc,var(--tx));line-height:1;margin-bottom:3px;letter-spacing:-1px;}
+.kpi-sub{font-size:9px;color:var(--mt);}
+
+/* CARDS */
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--radius);padding:20px;}
+.card-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mt);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.card-title::before{content:'';display:inline-block;width:3px;height:13px;background:var(--ac);border-radius:2px;flex-shrink:0;}
+.ch{position:relative;}.ch-sm{height:190px;}.ch-md{height:230px;}.ch-lg{height:280px;}.ch-xl{height:300px;}
+
+/* GRIDS */
+.g1{display:grid;gap:18px;margin-bottom:18px;}
+.g2{grid-template-columns:1fr 1fr;}
+.g3{grid-template-columns:2fr 1fr 1fr;}
+.g23{grid-template-columns:1.4fr 1fr 1fr;}
+.g-full{grid-template-columns:1fr;}
+@media(max-width:1100px){.g2,.g3,.g23{grid-template-columns:1fr;}}
+
+/* CRT BARS */
+.crt-bars{display:flex;flex-direction:column;gap:7px;margin-top:4px;}
+.crt-row{display:flex;align-items:center;gap:10px;font-size:11px;}
+.crt-label{width:72px;color:var(--mt);flex-shrink:0;font-size:10px;letter-spacing:.3px;}
+.crt-bar-wrap{flex:1;background:var(--sf2);border-radius:3px;height:20px;overflow:hidden;}
+.crt-bar-fill{height:100%;border-radius:3px;display:flex;align-items:center;padding-left:8px;font-size:10px;font-weight:700;color:#000;transition:width .6s ease;min-width:32px;}
+.crt-count{width:22px;text-align:right;font-weight:700;color:var(--tx);font-size:11px;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+th{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mt);padding:9px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--bd);white-space:nowrap;background:var(--sf2);}
+td{padding:9px 10px;border-bottom:1px solid rgba(26,42,61,.5);white-space:nowrap;vertical-align:middle;}
+tr:hover td{background:var(--sf2);}
+.obs-cell{max-width:220px;white-space:normal;line-height:1.4;color:var(--mt);font-size:10px;}
+
+/* PILLS/BADGES */
+.pill{display:inline-block;padding:2px 9px;border-radius:3px;font-size:9px;letter-spacing:.5px;font-weight:700;}
+.pill-g{background:rgba(0,232,122,.12);color:var(--gn);}
+.pill-r{background:rgba(200,212,224,.1);color:var(--rd);}
+.pill-b{background:rgba(0,212,255,.1);color:var(--ac);}
+.pill-y{background:rgba(255,215,0,.1);color:var(--yw);}
+.pill-o{background:rgba(255,107,53,.1);color:var(--a2);}
+
+.pos{color:var(--gn);font-weight:700;}
+.neg{color:var(--rd);font-weight:700;}
+.neu{color:var(--yw);font-weight:700;}
+.no-data{text-align:center;padding:40px;color:var(--mt);}
+
+/* TABLE QUICK FILTER */
+.tbl-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.tbl-filter-label{font-size:9px;letter-spacing:2px;color:var(--mt);text-transform:uppercase;}
+
+
+/* MODAL EQUITY */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(4,8,16,.92);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:24px;width:92vw;max-width:1300px;height:82vh;display:flex;flex-direction:column;position:relative;box-shadow:0 0 60px rgba(0,212,255,.1);}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.modal-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mt);display:flex;align-items:center;gap:8px;}
+.modal-title::before{content:'';display:inline-block;width:3px;height:13px;background:var(--ac);border-radius:2px;}
+.modal-actions{display:flex;align-items:center;gap:8px;}
+.modal-btn{background:var(--sf2);border:1px solid var(--bd);color:var(--mt);font-family:var(--font);font-size:10px;padding:5px 12px;border-radius:3px;cursor:pointer;letter-spacing:.5px;transition:all .15s;}
+.modal-btn:hover{border-color:var(--ac);color:var(--ac);}
+.modal-close{background:transparent;border:1px solid var(--bd);color:var(--mt);width:28px;height:28px;border-radius:3px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.modal-close:hover{border-color:var(--a2);color:var(--a2);}
+.modal-canvas-wrap{flex:1;position:relative;min-height:0;}
+.modal-hint{font-size:9px;color:var(--mt);letter-spacing:1px;margin-top:10px;text-align:center;}
+/* Expand button on equity card only */
+.equity-expand{position:absolute;top:14px;right:14px;background:transparent;border:1px solid var(--bd);color:var(--mt);padding:4px 10px;border-radius:3px;cursor:pointer;font-size:10px;letter-spacing:.5px;transition:all .15s;z-index:2;opacity:0;font-family:var(--font);}
+.equity-card:hover .equity-expand{opacity:1;}
+.equity-expand:hover{border-color:var(--ac);color:var(--ac);background:rgba(0,212,255,.08);}
+.equity-card{position:relative;}
+
+footer{text-align:center;font-size:9px;color:var(--mt);padding:20px 0 8px;letter-spacing:3px;border-top:1px solid var(--bd);margin-top:8px;}
+
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<!-- Hidden sync input -->
+<input type="hidden" id="su" value="https://docs.google.com/spreadsheets/d/1OJIb94FYsLI8uso55YqTySMAvxVGANX8/export?format=csv&gid=937007584">
+
+<header>
+  <div class="hd-left">
+    <h1>BITACORA <span>CRT</span></h1>
+  </div>
+  <div class="hd-right">
+    <div class="status-pill"><span class="dot"></span><span id="sl">Datos cargados</span></div>
+    <button class="btn-sync" onclick="syncSheet()">↻ SYNC SHEET</button>
+  </div>
+</header>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <div class="filter-row">
+    <span class="filter-cat">Cuenta</span>
+    <div class="chips" id="fc-cuenta">
+      <span class="chip on" data-val="REAL">REAL</span>
+      <span class="chip" data-val="DEMO">DEMO</span>
+      <span class="chip" data-val="">TODAS</span>
+    </div>
+  </div>
+  <div class="filter-row">
+    <span class="filter-cat">Activo</span>
+    <div class="chips" id="fc-activo">
+      <span class="chip on" data-val="">TODOS</span>
+      <span class="chip" data-val="EURUSD">EURUSD</span>
+      <span class="chip" data-val="GBPUSD">GBPUSD</span>
+      <span class="chip" data-val="ETHUSD">ETHUSD</span>
+      <span class="chip" data-val="BTCUSD">BTCUSD</span>
+    </div>
+  </div>
+  <div class="filter-row">
+    <span class="filter-cat">Mes</span>
+    <div class="chips" id="fc-mes">
+      <span class="chip on" data-val="">TODOS</span>
+      <span class="chip" data-val="DICIEMBRE">DICIEMBRE</span>
+      <span class="chip" data-val="ENERO">ENERO</span>
+      <span class="chip" data-val="FEBRERO">FEBRERO</span>
+      <span class="chip" data-val="MARZO">MARZO</span>
+    </div>
+  </div>
+  <div class="filter-row">
+    <span class="filter-cat">Posición</span>
+    <div class="chips" id="fc-pos">
+      <span class="chip on" data-val="">TODAS</span>
+      <span class="chip" data-val="LARGO">LARGO</span>
+      <span class="chip" data-val="CORTO">CORTO</span>
+    </div>
+    <button class="filter-reset" onclick="resetFilters()">↺ RESETEAR TODO</button>
+  </div>
+  <div class="filter-row">
+    <span class="filter-cat">Resultado</span>
+    <div class="chips" id="fc-res">
+      <span class="chip on" data-val="">TODOS</span>
+      <span class="chip" data-val="GANADA">GANADA</span>
+      <span class="chip" data-val="PERDIDA">PERDIDA</span>
+      <span class="chip" data-val="BE">BE</span>
+    </div>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid" id="kpi-grid"></div>
+
+<!-- EQUITY CURVE -->
+<div class="g1 g-full" style="margin-bottom:18px;">
+  <div class="card equity-card">
+    <div class="card-title">Curva de Equity — PnL Acumulado USD (Cuenta REAL)</div>
+    <button class="equity-expand" onclick="openEquityModal()">⤢ EXPANDIR</button>
+    <div class="ch ch-xl"><canvas id="cEq"></canvas></div>
+  </div>
+</div>
+
+<!-- ROW: PnL Mes | Win/Loss/BE | Real vs Demo -->
+<div class="g1 g23" style="margin-bottom:18px;">
+  <div class="card">
+    <div class="card-title">PnL por Mes (REAL)</div>
+    <div class="ch ch-md"><canvas id="cMs"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Win / Loss / BE</div>
+    <div class="ch ch-md"><canvas id="cWL"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Real vs Demo</div>
+    <div class="ch ch-md"><canvas id="cRD"></canvas></div>
+  </div>
+</div>
+
+<!-- ROW: Resultados por activo -->
+<div class="g1 g-full" style="margin-bottom:18px;">
+  <div class="card">
+    <div class="card-title">Resultados por Activo</div>
+    <div class="ch ch-md"><canvas id="cAc"></canvas></div>
+  </div>
+</div>
+
+<!-- ROW: CRT Barras | DXY Sesgo -->
+<div class="g1 g2" style="margin-bottom:18px;">
+  <div class="card">
+    <div class="card-title">Setup CRT Horario — Distribución</div>
+    <div id="crtBars" class="crt-bars" style="margin-top:8px;"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">DXY Sesgo vs Resultado</div>
+    <div class="ch ch-md"><canvas id="cDXY"></canvas></div>
+  </div>
+</div>
+
+<!-- ROW: Win Rate | Ratio | Hora -->
+<div class="g1" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:18px;">
+  <div class="card">
+    <div class="card-title">Win Rate por Activo %</div>
+    <div class="ch ch-sm"><canvas id="cWR"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Ratio Promedio por Activo</div>
+    <div class="ch ch-sm"><canvas id="cRt"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Operaciones por Hora de Entrada</div>
+    <div class="ch ch-sm"><canvas id="cHr"></canvas></div>
+  </div>
+</div>
+
+<!-- TABLE -->
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-title">Registro de Operaciones (<span id="tbl-count">0</span>)</div>
+  <div class="tbl-filter">
+    <span class="tbl-filter-label">Filtrar activo:</span>
+    <div class="chips" id="tbl-chips"></div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th><th>Cuenta</th><th>Activo</th><th>Posición</th>
+          <th>CRT H</th><th>CRT HTF</th><th>DXY</th><th>Alineación</th>
+          <th>Ratio</th><th>Riesgo $</th><th>SL pips</th>
+          <th>Resultado</th><th>Beneficio $</th><th>Entrada</th><th>Salida</th>
+          <th>Observaciones</th>
+        </tr>
+      </thead>
+      <tbody id="tbl-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>BITACORA CRT DASHBOARD · MÉTODO CRT · 2026</footer>
+</div>
+
+<!-- EQUITY MODAL -->
+<div class="modal-overlay" id="eqModal" onclick="if(event.target===this)closeEqModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Curva de Equity — PnL Acumulado USD (Cuenta REAL)</div>
+      <div class="modal-actions">
+        <button class="modal-btn" onclick="eqModalChart&&eqModalChart.resetZoom()">↺ Reset zoom</button>
+        <button class="modal-close" onclick="closeEqModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-canvas-wrap">
+      <canvas id="eqModalCanvas"></canvas>
+    </div>
+    <div class="modal-hint">🖱 Rueda del mouse para zoom · Click y arrastrá para mover · Doble click para resetear</div>
+  </div>
+</div>
+  </div>
+</div>
+
+<script>
+const RAW = [
+  {fecha:"2026-01-02",cuenta:"REAL",activo:"EURUSD",crtH:"1-2-3-4",crtHTF:"NO",alin:"NO",dxy:"NO",pos:"LARGO",lote:0.03,riesgo:2.83,ratio:1.55,slPips:9.4,res:"GANADA",inp:"09:00",out:"10:07",ben:4.38,obs:"NONE",mes:"ENERO"},
+  {fecha:"2026-01-06",cuenta:"REAL",activo:"EURUSD",crtH:"1-2-3-4",crtHTF:"D",alin:"GBPUSD",dxy:"ALCISTA",pos:"CORTO",lote:0.04,riesgo:3.15,ratio:1.27,slPips:7.9,res:"GANADA",inp:"09:15",out:"10:04",ben:4.0,obs:"NONE",mes:"ENERO"},
+  {fecha:"2026-01-08",cuenta:"REAL",activo:"EURUSD",crtH:"1-2-3",crtHTF:"NO",alin:"NO",dxy:"NO",pos:"LARGO",lote:0.04,riesgo:3.45,ratio:1.16,slPips:8.6,res:"GANADA",inp:"09:57",out:"10:28",ben:4.0,obs:"EN EL MOMENTO DE LA FORMACION DE 3H Y 4H, ESTABA DEJANDO MECHA Y POR ESO LA ENTRADA. NO COMPLETO ESOS RANGOS.",mes:"ENERO"},
+  {fecha:"2026-01-12",cuenta:"DEMO",activo:"EURUSD",crtH:"2-3-4",crtHTF:"NO",alin:"NO",dxy:"ALCISTA",pos:"CORTO",lote:0,riesgo:0,ratio:1,slPips:16.7,res:"GANADA",inp:"09:00",out:"13:00",ben:0,obs:"NONE",mes:"ENERO"},
+  {fecha:"2026-01-13",cuenta:"DEMO",activo:"EURUSD",crtH:"1-2-3-4",crtHTF:"NO",alin:"GBPUSD",dxy:"ALCISTA",pos:"CORTO",lote:0,riesgo:0,ratio:1,slPips:9.0,res:"GANADA",inp:"05:00",out:"07:45",ben:0,obs:"NONE",mes:"ENERO"},
+  {fecha:"2026-01-15",cuenta:"DEMO",activo:"EURUSD",crtH:"1-2-3-4",crtHTF:"NO",alin:"GBPUSD",dxy:"NO",pos:"CORTO",lote:0,riesgo:0,ratio:1,slPips:5.5,res:"GANADA",inp:"06:00",out:"06:45",ben:0,obs:"NONE",mes:"ENERO"},
+  {fecha:"2026-01-15",cuenta:"DEMO",activo:"EURUSD",crtH:"1-2-4",crtHTF:"NO",alin:"GBPUSD",dxy:"BAJISTA",pos:"LARGO",lote:0,riesgo:0,ratio:1,slPips:15.3,res:"GANADA",inp:"12:30",out:"06:45",ben:0,obs:"ALINEADO EN MISMOS TF",mes:"ENERO"},
+  {fecha:"2026-01-18",cuenta:"REAL",activo:"GBPUSD",crtH:"1-2",crtHTF:"NO",alin:"NO",dxy:"NO",pos:"CORTO",lote:0.03,riesgo:4.17,ratio:1.0,slPips:13.9,res:"GANADA",inp:"20:47",out:"21:21",ben:4.17,obs:"EL 1:1 ME SALVA DE NO PERDER, YA QUE NO COMPLETO EL RANGO NI CERCA. NO ESTABA VALIDADO EL OB.",mes:"ENERO"},
+  {fecha:"2026-01-23",cuenta:"DEMO",activo:"GBPUSD",crtH:"1-2-3-4",crtHTF:"NO",alin:"NO",dxy:"BAJISTA",pos:"CORTO",lote:0,riesgo:0,ratio:1,slPips:6.7,res:"PERDIDA",inp:"08:00",out:"09:00",ben:0,obs:"DXY TENIA EN 1H SESGO BAJISTA Y YO ENTRE EN CORTO.",mes:"ENERO"},
+  {fecha:"2026-01-29",cuenta:"DEMO",activo:"EURUSD",crtH:"3-4",crtHTF:"NO",alin:"NO",dxy:"BAJISTA",pos:"LARGO",lote:0,riesgo:0,ratio:1,slPips:13.4,res:"GANADA",inp:"07:30",out:"08:00",ben:0,obs:"DXY BAJISTA EN 4H",mes:"ENERO"},
+  {fecha:"2026-02-02",cuenta:"DEMO",activo:"GBPUSD",crtH:"1-2-3-4",crtHTF:"NO",alin:"NO",dxy:"ALCISTA",pos:"CORTO",lote:0,riesgo:0,ratio:1,slPips:8.9,res:"GANADA",inp:"06:30",out:"07:00",ben:0,obs:"NONE",mes:"FEBRERO"},
+  {fecha:"2026-02-05",cuenta:"REAL",activo:"EURUSD",crtH:"1-2-3-4",crtHTF:"NO",alin:"NO",dxy:"ALCISTA",pos:"CORTO",lote:0.04,riesgo:4.48,ratio:1.16,slPips:11.2,res:"PERDIDA",inp:"09:10",out:"09:15",ben:-5.16,obs:"PUSE MAL LA ORDEN, MUY JUSTO EL SL. DXY ACOMPAÑA EN 1H.",mes:"FEBRERO"},
+  {fecha:"2026-02-05",cuenta:"DEMO",activo:"EURUSD",crtH:"2-3-4",crtHTF:"NO",alin:"NO",dxy:"NO",pos:"LARGO",lote:0,riesgo:0,ratio:1,slPips:0,res:"GANADA",inp:"20:15",out:"00:00",ben:0,obs:"ALINEADO CON GBP EN D Y 4H EN DXY",mes:"FEBRERO"},
+  {fecha:"2026-02-07",cuenta:"REAL",activo:"ETHUSD",crtH:"1-2-4",crtHTF:"D",alin:"NO",dxy:"UNDEFINED",pos:"CORTO",lote:0.1,riesgo:5.2,ratio:1,slPips:50.21,res:"PERDIDA",inp:"19:27",out:"11:33",ben:-5.2,obs:"ALINEADO EN D CON BTC",mes:"FEBRERO"},
+  {fecha:"2026-02-09",cuenta:"REAL",activo:"GBPUSD",crtH:"1-2",crtHTF:"NO",alin:"EURUSD",dxy:"BAJISTA",pos:"CORTO",lote:0.03,riesgo:6.96,ratio:1,slPips:23.2,res:"PERDIDA",inp:"11:28",out:"14:17",ben:-6.96,obs:"ESE DIA CUMPLIO OBJETIVO ALCISTA DIARIO Y ENTRE A LA BAJA.",mes:"FEBRERO"},
+  {fecha:"2026-02-10",cuenta:"REAL",activo:"EURUSD",crtH:"NO",crtHTF:"D",alin:"GBPUSD",dxy:"ALCISTA",pos:"CORTO",lote:0.01,riesgo:2.76,ratio:1.65,slPips:27.6,res:"GANADA",inp:"21:48",out:"08:30",ben:4.56,obs:"USE SOLO CRT D. Y OB DE 1H",mes:"FEBRERO"},
+  {fecha:"2026-02-11",cuenta:"REAL",activo:"ETHUSD",crtH:"2-3-4",crtHTF:"D",alin:"BTCUSD",dxy:"UNDEFINED",pos:"CORTO",lote:0.1,riesgo:2.97,ratio:1,slPips:29.7,res:"PERDIDA",inp:"21:23",out:"04:56",ben:-2.97,obs:"SI ENTRABA EN BTC GANABA.",mes:"FEBRERO"},
+  {fecha:"2026-02-12",cuenta:"REAL",activo:"EURUSD",crtH:"1-2-3",crtHTF:"D",alin:"NO",dxy:"NO",pos:"CORTO",lote:0.05,riesgo:4.2,ratio:1,slPips:84,res:"PERDIDA",inp:"09:24",out:"10:48",ben:-4.2,obs:"CONSIDERAR PONER UN SL MAS HOLGADO. EL CRT DE 4H SE DA CUANDO ME SACA.",mes:"FEBRERO"},
+  {fecha:"2026-02-12",cuenta:"REAL",activo:"GBPUSD",crtH:"2-4",crtHTF:"D",alin:"EURUSD",dxy:"ALCISTA",pos:"LARGO",lote:0.02,riesgo:4.26,ratio:1,slPips:21.3,res:"PERDIDA",inp:"22:08",out:"01:26",ben:-4.26,obs:"GBP TENIA RANGO BAJISTA D POR COMPLETAR. ENTRE A CONTRATENDENCIA.",mes:"FEBRERO"},
+  {fecha:"2026-02-16",cuenta:"DEMO",activo:"GBPUSD",crtH:"1-2-3-4",crtHTF:"D",alin:"EURUSD",dxy:"ALCISTA",pos:"CORTO",lote:0,riesgo:0,ratio:1,slPips:15,res:"GANADA",inp:"07:00",out:"08:00",ben:0,obs:"TODO ALINEADO. EN CONCORDANCIA CON LAS HTF DE LA ENTRADA ANTERIOR",mes:"FEBRERO"},
+  {fecha:"2026-02-18",cuenta:"REAL",activo:"GBPUSD",crtH:"1-2-3-4",crtHTF:"NO",alin:"EURUSD",dxy:"ALCISTA",pos:"CORTO",lote:0.03,riesgo:3.42,ratio:1.2,slPips:11.4,res:"GANADA",inp:"07:56",out:"08:56",ben:4.11,obs:"DXY ESTABA RUMBO A COMPLETAR EL RANGO ALCISTAS MENCIONADO ANTES.",mes:"FEBRERO"},
+  {fecha:"2026-12-23",cuenta:"REAL",activo:"GBPUSD",crtH:"1-4",crtHTF:"D",alin:"EURUSD",dxy:"ALCISTA",pos:"CORTO",lote:0,riesgo:0,ratio:1,slPips:9.3,res:"GANADA",inp:"02:00",out:"03:00",ben:0,obs:"EL CRT D NO SE CUMPLIO, CUANDO PLANTEE LA ENTRADA ESTABA EN FORMACION",mes:"DICIEMBRE"},
+  {fecha:"2026-02-24",cuenta:"REAL",activo:"GBPUSD",crtH:"2-3-4",crtHTF:"D",alin:"NO",dxy:"BAJISTA",pos:"CORTO",lote:0.03,riesgo:3.15,ratio:2,slPips:10.5,res:"PERDIDA",inp:"10:05",out:"10:27",ben:-3.15,obs:"EL CRT D NO SE CUMPLIO, YA ESTABA CONFIRMADO.",mes:"FEBRERO"},
+  {fecha:"2026-02-24",cuenta:"REAL",activo:"BTCUSD",crtH:"NO",crtHTF:"NO",alin:"NO",dxy:"NO",pos:"CORTO",lote:0.01,riesgo:5.6,ratio:1,slPips:56.027,res:"PERDIDA",inp:"11:38",out:"12:08",ben:-5.6,obs:"NO ENTENDI ESTA ENTRADA. RECORDAR QUE SIEMPRE MANDA LA VELA DE MAS A LA IZQUIERDA.",mes:"FEBRERO"},
+  {fecha:"2026-02-25",cuenta:"REAL",activo:"GBPUSD",crtH:"4",crtHTF:"NO",alin:"NO",dxy:"NO",pos:"CORTO",lote:0.03,riesgo:4.17,ratio:1,slPips:13.9,res:"GANADA",inp:"05:11",out:"06:07",ben:4.17,obs:"PO3 VELA DE LAS 5 (4H).",mes:"FEBRERO"},
+  {fecha:"2026-02-26",cuenta:"REAL",activo:"EURUSD",crtH:"1",crtHTF:"D",alin:"GBPUSD",dxy:"ALCISTA",pos:"CORTO",lote:0.1,riesgo:3.9,ratio:1.82,slPips:3.9,res:"PERDIDA",inp:"09:20",out:"09:32",ben:-3.9,obs:"EL SL SIEMPRE ATRAS DEL TS. ADEMAS TENIAMOS RANGOS EN CONTRA EN 2-3-4",mes:"FEBRERO"},
+  {fecha:"2026-02-27",cuenta:"REAL",activo:"EURUSD",crtH:"1-3-4",crtHTF:"D",alin:"NO",dxy:"ALCISTA",pos:"CORTO",lote:0.1,riesgo:3.8,ratio:1.55,slPips:3.8,res:"PERDIDA",inp:"07:00",out:"07:01",ben:-3.8,obs:"ESPERAR LOS PRIMEROS 15 MIN DE LA VELA. PORQUE EN ESTA OCACION ME HIZO UN ITS.",mes:"FEBRERO"},
+  {fecha:"2026-03-02",cuenta:"REAL",activo:"EURUSD",crtH:"1",crtHTF:"NO",alin:"NO",dxy:"ALCISTA",pos:"CORTO",lote:0.03,riesgo:3.57,ratio:1.1,slPips:12.1,res:"BE",inp:"06:06",out:"06:46",ben:0,obs:"2-3 H RANGO EN CONTRA",mes:"MARZO"},
+  {fecha:"2026-03-02",cuenta:"REAL",activo:"GBPUSD",crtH:"4",crtHTF:"NO",alin:"NO",dxy:"NO",pos:"CORTO",lote:0.01,riesgo:3.42,ratio:1.21,slPips:34.7,res:"BE",inp:"08:03",out:"08:16",ben:0.03,obs:"CERRADA MANUALMENTE NO HABIA BUEN CONTEXTO. CRT 4H EN FORMACION, NO ESTABA VALIDADO.",mes:"MARZO"},
+  {fecha:"2026-03-03",cuenta:"REAL",activo:"EURUSD",crtH:"1",crtHTF:"1",alin:"GBPUSD",dxy:"BAJISTA",pos:"LARGO",lote:0.03,riesgo:4.21,ratio:1.12,slPips:14,res:"GANADA",inp:"07:00",out:"07:21",ben:4.71,obs:"EN 1H TODO ALINEADO.",mes:"MARZO"},
+  {fecha:"2026-03-04",cuenta:"REAL",activo:"GBPUSD",crtH:"NO",crtHTF:"D",alin:"NO",dxy:"ALCISTA",pos:"LARGO",lote:0.01,riesgo:0.8,ratio:3.3,slPips:9.1,res:"BE",inp:"06:04",out:"06:43",ben:0,obs:"DXY ALCISTA EN 1H, CONTRARIO A LA ENTRADA. EN 15M APARECE UN RANGO EN CONTRA Y VAMOS A BE.",mes:"MARZO"},
+  {fecha:"2026-03-04",cuenta:"REAL",activo:"EURUSD",crtH:"1",crtHTF:"NO",alin:"NO",dxy:"ALCISTA",pos:"CORTO",lote:0.03,riesgo:3.48,ratio:1.06,slPips:11.6,res:"GANADA",inp:"07:04",out:"07:31",ben:3.69,obs:"SOLO RANGO DE 1H.",mes:"MARZO"},
+  {fecha:"2026-03-09",cuenta:"REAL",activo:"ETHUSD",crtH:"2-3-4",crtHTF:"D-S",alin:"BTCUSD",dxy:"NO",pos:"CORTO",lote:0.1,riesgo:3.04,ratio:1.12,slPips:30.36,res:"PERDIDA",inp:"08:00",out:"09:34",ben:-3.04,obs:"EL D ESTABA EN FORMACION, NO CONFIRMADO. EL 1H ME CREO UN RANGO EN CONTRA.",mes:"MARZO"},
+  {fecha:"2026-03-09",cuenta:"REAL",activo:"EURUSD",crtH:"1-2-3-4",crtHTF:"NO",alin:"NO",dxy:"ALCISTA",pos:"CORTO",lote:0.03,riesgo:3,ratio:1,slPips:14.4,res:"GANADA",inp:"08:19",out:"08:52",ben:1.2,obs:"HABIA UN GAP ALCISTA, CERRE ANTES JUSTAMENTE POR ESE GAP.",mes:"MARZO"},
+  {fecha:"2026-03-09",cuenta:"REAL",activo:"EURUSD",crtH:"1-2-3-4",crtHTF:"D",alin:"GBPUSD",dxy:"ALCISTA",pos:"CORTO",lote:0.03,riesgo:5.22,ratio:1,slPips:17.4,res:"GANADA",inp:"18:59",out:"23:07",ben:5.22,obs:"D Y 3-4 H EN FORMACION.",mes:"MARZO"},
+  {fecha:"2026-03-09",cuenta:"REAL",activo:"GBPUSD",crtH:"1-2-3-4",crtHTF:"D",alin:"EURUSD",dxy:"ALCISTA",pos:"CORTO",lote:0.03,riesgo:5.28,ratio:1,slPips:17.6,res:"PERDIDA",inp:"18:59",out:"02:33",ben:-5.28,obs:"POR EL SPREAD DEL BROKER NO ME DIO TP. SI NO ERA GANADA.",mes:"MARZO"},
+  {fecha:"2026-03-13",cuenta:"REAL",activo:"ETHUSD",crtH:"4",crtHTF:"S",alin:"BTCUSD",dxy:"NO",pos:"CORTO",lote:0.1,riesgo:3.59,ratio:2.83,slPips:35.94,res:"BE",inp:"13:38",out:"01:17",ben:0.02,obs:"ESTABA DEJANDO UN ITS DE TS SEMANAL. 4H CONFIRMADO. SI ERA 1:1 SE GANABA.",mes:"MARZO"},
+  {fecha:"2026-03-13",cuenta:"REAL",activo:"ETHUSD",crtH:"NO",crtHTF:"S",alin:"NO",dxy:"NO",pos:"CORTO",lote:1,riesgo:3.95,ratio:1,slPips:3.95,res:"PERDIDA",inp:"22:50",out:"22:55",ben:-3.95,obs:"RANGO EN CONTRA DE 4H Y 30 M. MUY MALA ENTRADA.",mes:"MARZO"},
+  {fecha:"2026-03-15",cuenta:"REAL",activo:"ETHUSD",crtH:"1",crtHTF:"S",alin:"BTCUSD",dxy:"NO",pos:"CORTO",lote:0.2,riesgo:6.17,ratio:1.75,slPips:30.85,res:"PERDIDA",inp:"19:21",out:"23:30",ben:-6.17,obs:"CRT DE 1H, INGRESO PORQUE PENSE QUE ESTABAMOS EN ZONA OPTIMA DE ENTRADA DE CRT SEMANAL.",mes:"MARZO"},
+  {fecha:"2026-03-16",cuenta:"REAL",activo:"GBPUSD",crtH:"1-4",crtHTF:"S",alin:"NO",dxy:"NO",pos:"CORTO",lote:0.03,riesgo:2.52,ratio:1.51,slPips:8.4,res:"PERDIDA",inp:"05:58",out:"06:13",ben:-2.52,obs:"MALA LECTURA A LA HORA DE MIRAR LOS RANGOS.",mes:"MARZO"},
+  {fecha:"2026-03-16",cuenta:"REAL",activo:"GBPUSD",crtH:"1-4",crtHTF:"S",alin:"NO",dxy:"NO",pos:"CORTO",lote:0.03,riesgo:1.17,ratio:2.9,slPips:3.9,res:"PERDIDA",inp:"06:10",out:"06:13",ben:-1.17,obs:"ESTA VA A DE LA MANO CON LA ANTERIOR. LA IDEA ERA MEJORAR EL PUNTO DE ENTRADA.",mes:"MARZO"},
+  {fecha:"2026-03-17",cuenta:"REAL",activo:"EURUSD",crtH:"1",crtHTF:"NO",alin:"NO",dxy:"ALCISTA",pos:"CORTO",lote:0.02,riesgo:3.26,ratio:1.32,slPips:16.3,res:"PERDIDA",inp:"06:40",out:"09:00",ben:-3.26,obs:"2-3-4 EN FORMACION. RANGO DE 1H CONFIRMADO.",mes:"MARZO"},
+  {fecha:"2026-03-19",cuenta:"REAL",activo:"BTCUSD",crtH:"2-3-4",crtHTF:"S",alin:"ETHUSD",dxy:"NO",pos:"CORTO",lote:0.01,riesgo:5.3,ratio:2.04,slPips:530.36,res:"PERDIDA",inp:"20:40",out:"23:30",ben:-5.3,obs:"ENTRADA EN VELA 3 DE RANGO DE 4H.",mes:"MARZO"},
+  {fecha:"2026-03-23",cuenta:"REAL",activo:"EURUSD",crtH:"1",crtHTF:"NO",alin:"GBPUSD",dxy:"NO",pos:"CORTO",lote:0.02,riesgo:3.5,ratio:4.03,slPips:18,res:"PERDIDA",inp:"10:13",out:"10:19",ben:-3.5,obs:"DIA DE VELAS DE MUCHOS PIPS. SUBIO Y TERMINO DEJANDO UN CRT D CON ESA SUBIDA.",mes:"MARZO"},
+  {fecha:"2026-03-23",cuenta:"REAL",activo:"GBPUSD",crtH:"1",crtHTF:"NO",alin:"EURUSD",dxy:"NO",pos:"CORTO",lote:0.03,riesgo:5.4,ratio:2.92,slPips:17.5,res:"PERDIDA",inp:"10:13",out:"10:18",ben:-5.4,obs:"DIA DE VELAS DE MUCHOS PIPS. RANGO DE 4H EN FORMACION QUE LUEGO SE VALIDO.",mes:"MARZO"},
+  {fecha:"2026-03-24",cuenta:"REAL",activo:"EURUSD",crtH:"1-2-4",crtHTF:"D-S",alin:"GBPUSD",dxy:"ALCISTA",pos:"CORTO",lote:0.01,riesgo:2.64,ratio:2.08,slPips:24.6,res:"GANADA",inp:"21:45",out:"11:48",ben:5.12,obs:"CRT DIARIO CONFIRMACION, SEMANAL EN FORMACION. RANGO DE 4H CONFIRMADO.",mes:"MARZO"}
+];
+
+// State
+const filters = {cuenta:'REAL', activo:'', mes:'', pos:'', res:''};
+let tblActivo = '';
+const CH = {};
+
+function applyFilters(data) {
+  return data.filter(d =>
+    (!filters.cuenta || d.cuenta === filters.cuenta) &&
+    (!filters.activo || d.activo === filters.activo) &&
+    (!filters.mes    || d.mes    === filters.mes) &&
+    (!filters.pos    || d.pos    === filters.pos) &&
+    (!filters.res    || d.res    === filters.res)
+  );
+}
+
+function filteredData() { return applyFilters(RAW); }
+
+function fmt(n, d=2) { return (n===null||isNaN(n)) ? '—' : n.toFixed(d); }
+function fmtSign(n) { return n>0?'+$'+fmt(n):n<0?'-$'+fmt(Math.abs(n)):'$0.00'; }
+
+// CHIP FILTERS
+document.querySelectorAll('#fc-cuenta .chip, #fc-activo .chip, #fc-mes .chip, #fc-pos .chip, #fc-res .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const parent = chip.parentElement;
+    parent.querySelectorAll('.chip').forEach(c => c.classList.remove('on','on-green','on-orange'));
+    chip.classList.add('on');
+    const groupId = parent.id;
+    const val = chip.dataset.val;
+    if (groupId==='fc-cuenta') filters.cuenta = val;
+    if (groupId==='fc-activo') { filters.activo = val; syncTblChips(val); }
+    if (groupId==='fc-mes')    filters.mes    = val;
+    if (groupId==='fc-pos')    filters.pos    = val;
+    if (groupId==='fc-res')    filters.res    = val;
+    render();
+  });
+});
+
+function resetFilters() {
+  Object.keys(filters).forEach(k => filters[k]='');
+  filters.cuenta = 'REAL';
+  tblActivo = '';
+  document.querySelectorAll('.chip.on, .chip.on-green, .chip.on-orange').forEach(c => c.classList.remove('on','on-green','on-orange'));
+  // Activar REAL en cuenta, TODOS en el resto
+  document.querySelector('#fc-cuenta .chip[data-val="REAL"]').classList.add('on');
+  ['#fc-activo','#fc-mes','#fc-pos','#fc-res','#tbl-chips'].forEach(sel => {
+    const first = document.querySelector(sel+' .chip:first-child');
+    if(first) first.classList.add('on');
+  });
+  render();
+}
+
+function syncTblChips(val) {
+  document.querySelectorAll('#tbl-chips .chip').forEach(c => c.classList.remove('on'));
+  const match = document.querySelector(`#tbl-chips .chip[data-val="${val}"]`);
+  if (match) match.classList.add('on');
+}
+
+// Build table quick-filter chips
+function buildTblChips() {
+  const acts = ['', ...new Set(RAW.map(d=>d.activo))];
+  const names = {'':"TODOS", EURUSD:'EURUSD', GBPUSD:'GBPUSD', ETHUSD:'ETHUSD', BTCUSD:'BTCUSD'};
+  const container = document.getElementById('tbl-chips');
+  container.innerHTML = '';
+  acts.forEach(a => {
+    const c = document.createElement('span');
+    c.className = 'chip' + (a===filters.activo ? ' on' : '');
+    c.dataset.val = a;
+    c.textContent = names[a] || a;
+    c.addEventListener('click', () => {
+      document.querySelectorAll('#tbl-chips .chip').forEach(x=>x.classList.remove('on'));
+      c.classList.add('on');
+      // sync top filter
+      filters.activo = a;
+      document.querySelectorAll('#fc-activo .chip').forEach(x=>x.classList.remove('on'));
+      const top = document.querySelector(`#fc-activo .chip[data-val="${a}"]`);
+      if(top) top.classList.add('on');
+      render();
+    });
+    container.appendChild(c);
+  });
+}
+
+// RENDER KPIs
+function renderKPIs(data) {
+  const rl = data.filter(d=>d.cuenta==='REAL');
+  const W=rl.filter(d=>d.res==='GANADA'), L=rl.filter(d=>d.res==='PERDIDA'), B=rl.filter(d=>d.res==='BE');
+  const n=rl.length, wr=n?(W.length/n*100).toFixed(1):0;
+  const pnl=rl.reduce((s,d)=>s+d.ben,0);
+  const ar=n?(rl.reduce((s,d)=>s+d.ratio,0)/n).toFixed(2):0;
+  const vs=rl.map(d=>d.ben).filter(v=>v!==0);
+  const best=vs.length?Math.max(...vs):0, worst=vs.length?Math.min(...vs):0;
+  const aw=W.filter(x=>x.ben!==0).length?(W.filter(x=>x.ben!==0).reduce((s,d)=>s+d.ben,0)/W.filter(x=>x.ben!==0).length).toFixed(2):0;
+  const al=L.length?(Math.abs(L.reduce((s,d)=>s+d.ben,0)/L.length)).toFixed(2):0;
+
+  const kpis = [
+    {l:'Trades REAL',  v:n,       s:`${W.length}G / ${L.length}P / ${B.length}BE`, c:'var(--ac)'},
+    {l:'Win Rate',     v:wr+'%',  s:'tasa de éxito',   c:parseFloat(wr)>=50?'var(--gn)':'var(--rd)'},
+    {l:'PnL Total',    v:(pnl>=0?'+':'')+pnl.toFixed(2), s:'USD acumulado', c:pnl>=0?'var(--gn)':'var(--rd)'},
+    {l:'Ratio Prom.',  v:ar,      s:'riesgo/beneficio', c:'var(--a2)'},
+    {l:'Mejor Trade',  v:'+'+best.toFixed(2), s:'USD', c:'var(--gn)'},
+    {l:'Peor Trade',   v:worst.toFixed(2), s:'USD',   c:'var(--rd)'},
+    {l:'Avg Win',      v:'+'+aw,  s:'USD promedio',    c:'var(--gn)'},
+    {l:'Avg Loss',     v:'-'+al,  s:'USD promedio',    c:'var(--rd)'},
+  ];
+  document.getElementById('kpi-grid').innerHTML = kpis.map(k=>
+    `<div class="kpi" style="--kc:${k.c}">
+      <div class="kpi-label">${k.l}</div>
+      <div class="kpi-value">${k.v}</div>
+      <div class="kpi-sub">${k.s}</div>
+    </div>`).join('');
+}
+
+// CHART HELPERS
+function mk(id, type, data, opts) {
+  if(CH[id]) CH[id].destroy();
+  CH[id] = new Chart(document.getElementById(id), {type, data, options: opts});
+}
+
+function bo(extra={}) {
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{backgroundColor:'#0d1520',borderColor:'#1a2a3d',borderWidth:1,titleColor:'#c8d8eb',bodyColor:'#3d5470',titleFont:{family:'Segoe UI',size:11},bodyFont:{family:'Segoe UI',size:11}}
+    },
+    scales:{
+      x:{grid:{color:'rgba(26,42,61,.6)'},ticks:{color:'#3d5470',font:{size:10},maxRotation:45}},
+      y:{grid:{color:'rgba(26,42,61,.6)'},ticks:{color:'#3d5470',font:{size:10}}}
+    },
+    ...extra
+  };
+}
+
+function renderEquity(data) {
+  const rl = data.filter(d=>d.cuenta==='REAL').sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  let cum=0; const labels=[], vals=[], ptColors=[];
+  rl.forEach(d=>{cum=+(cum+d.ben).toFixed(2); labels.push(d.fecha.slice(5)); vals.push(cum); ptColors.push(d.ben>=0?'#00e87a':'#c8d4e0');});
+  mk('cEq','line',{labels,datasets:[{label:'PnL USD',data:vals,borderColor:'#00d4ff',backgroundColor:ctx=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,'rgba(0,212,255,.18)');g.addColorStop(1,'rgba(0,212,255,0)');return g;},borderWidth:2,fill:true,tension:.35,pointRadius:4,pointBackgroundColor:ptColors,pointBorderColor:ptColors}]},bo());
+}
+
+function renderPnLMes(data) {
+  const mo=['DICIEMBRE','ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE'];
+  const rl=data.filter(d=>d.cuenta==='REAL');
+  const bm={}; rl.forEach(d=>{bm[d.mes]=(bm[d.mes]||0)+d.ben;});
+  const mk2=Object.keys(bm).sort((a,b)=>mo.indexOf(a)-mo.indexOf(b));
+  mk('cMs','bar',{labels:mk2,datasets:[{data:mk2.map(k=>+bm[k].toFixed(2)),backgroundColor:mk2.map(k=>bm[k]>=0?'rgba(0,232,122,.7)':'rgba(200,212,224,.5)'),borderRadius:4,borderSkipped:false}]},bo());
+}
+
+function renderWL(data) {
+  const rl=data.filter(d=>d.cuenta==='REAL');
+  const w=rl.filter(d=>d.res==='GANADA').length, l=rl.filter(d=>d.res==='PERDIDA').length, b=rl.filter(d=>d.res==='BE').length;
+  mk('cWL','doughnut',{labels:['Ganada','Perdida','BE'],datasets:[{data:[w,l,b],backgroundColor:['rgba(0,232,122,.8)','rgba(200,212,224,.6)','rgba(255,215,0,.7)'],borderColor:['#00e87a','#c8d4e0','#ffd700'],borderWidth:2,hoverOffset:8}]},{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{color:'#3d5470',font:{family:'Segoe UI',size:10},padding:10}}}});
+}
+
+function renderRD(data) {
+  const rc=data.filter(d=>d.cuenta==='REAL').length, dc=data.filter(d=>d.cuenta==='DEMO').length;
+  mk('cRD','doughnut',{labels:['REAL','DEMO'],datasets:[{data:[rc,dc],backgroundColor:['rgba(0,212,255,.8)','rgba(255,107,53,.7)'],borderColor:['#00d4ff','#ff6b35'],borderWidth:2,hoverOffset:8}]},{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{color:'#3d5470',font:{family:'Segoe UI',size:10},padding:10}}}});
+}
+
+function renderActivo(data) {
+  const acts=[...new Set(data.map(d=>d.activo))].filter(Boolean);
+  mk('cAc','bar',{labels:acts,datasets:[
+    {label:'Ganadas',data:acts.map(a=>data.filter(d=>d.activo===a&&d.res==='GANADA').length),backgroundColor:'rgba(0,232,122,.7)',borderRadius:5},
+    {label:'Perdidas',data:acts.map(a=>data.filter(d=>d.activo===a&&d.res==='PERDIDA').length),backgroundColor:'rgba(200,212,224,.55)',borderRadius:5},
+    {label:'BE',data:acts.map(a=>data.filter(d=>d.activo===a&&d.res==='BE').length),backgroundColor:'rgba(255,215,0,.6)',borderRadius:5}
+  ]},{...bo(),plugins:{...bo().plugins,legend:{display:true,labels:{color:'#3d5470',font:{size:10},boxWidth:10}}}});
+}
+
+
+function renderCRT(data) {
+  const counts={};
+  data.forEach(d=>{const k=d.crtH||'N/A'; counts[k]=(counts[k]||0)+1;});
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const max=sorted[0]?.[1]||1;
+  const colors=['#00d4ff','#00e87a','#ffd700','#ff6b35','#a78bfa','#fb923c','#38bdf8','#e879f9','#6ee7b7'];
+  document.getElementById('crtBars').innerHTML = sorted.map(([k,v],i)=>`
+    <div class="crt-row">
+      <div class="crt-label">${k}</div>
+      <div class="crt-bar-wrap">
+        <div class="crt-bar-fill" style="width:${(v/max*100).toFixed(0)}%;background:${colors[i%colors.length]};min-width:${v>0?32:0}px">${k}</div>
+      </div>
+      <div class="crt-count">${v}</div>
+    </div>`).join('');
+}
+
+function renderDXY(data) {
+  const vals=[...new Set(data.map(d=>d.dxy).filter(d=>d&&d!=='UNDEFINED'&&d!=='NO'&&d!==''))];
+  mk('cDXY','bar',{labels:vals,datasets:[
+    {label:'Ganadas',data:vals.map(d=>data.filter(x=>x.dxy===d&&x.res==='GANADA').length),backgroundColor:'rgba(0,232,122,.7)',borderRadius:5},
+    {label:'Perdidas',data:vals.map(d=>data.filter(x=>x.dxy===d&&x.res==='PERDIDA').length),backgroundColor:'rgba(200,212,224,.55)',borderRadius:5}
+  ]},{...bo(),plugins:{...bo().plugins,legend:{display:true,labels:{color:'#3d5470',font:{size:10},boxWidth:10}}}});
+}
+
+function renderWinRate(data) {
+  const rl=data.filter(d=>d.cuenta==='REAL');
+  const acts=[...new Set(rl.map(d=>d.activo))].filter(Boolean);
+  const wrw={}, wrt={};
+  rl.forEach(d=>{wrt[d.activo]=(wrt[d.activo]||0)+1; if(d.res==='GANADA') wrw[d.activo]=(wrw[d.activo]||0)+1;});
+  const vals=acts.map(a=>+((wrw[a]||0)/wrt[a]*100).toFixed(1));
+  mk('cWR','bar',{labels:acts,datasets:[{label:'%',data:vals,backgroundColor:vals.map(v=>v>=50?'rgba(0,232,122,.7)':'rgba(200,212,224,.5)'),borderRadius:5,borderSkipped:false}]},bo());
+}
+
+function renderRatio(data) {
+  const rl=data.filter(d=>d.cuenta==='REAL');
+  const rs={}, rn={};
+  rl.forEach(d=>{rs[d.activo]=(rs[d.activo]||0)+d.ratio; rn[d.activo]=(rn[d.activo]||0)+1;});
+  const acts=Object.keys(rs);
+  mk('cRt','bar',{labels:acts,datasets:[{label:'Ratio',data:acts.map(a=>+(rs[a]/rn[a]).toFixed(2)),backgroundColor:'rgba(255,107,53,.65)',borderRadius:5,borderSkipped:false}]},bo());
+}
+
+function renderHora(data) {
+  const rl=data.filter(d=>d.cuenta==='REAL');
+  const hm={};
+  rl.forEach(d=>{const h=parseInt((d.inp||'0').split(':')[0]); if(!isNaN(h)) hm[h]=(hm[h]||0)+1;});
+  const hk=Object.keys(hm).sort((a,b)=>a-b);
+  mk('cHr','bar',{labels:hk.map(h=>h+':00'),datasets:[{label:'Trades',data:hk.map(k=>hm[k]),backgroundColor:'rgba(0,212,255,.55)',borderRadius:5,borderSkipped:false}]},bo());
+}
+
+function renderTable(data) {
+  document.getElementById('tbl-count').textContent = data.length;
+  const sorted=[...data].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  document.getElementById('tbl-body').innerHTML = sorted.length===0
+    ? `<tr><td colspan="16" class="no-data">Sin operaciones con los filtros seleccionados.</td></tr>`
+    : sorted.map(d=>{
+        const b=d.ben, bc=b>0?'pos':b<0?'neg':'neu';
+        const obs=(d.obs||'').trim();
+        const cuentaPill = d.cuenta==='REAL'?'pill-b':'pill-o';
+        const resPill = d.res==='GANADA'?'pill-g':d.res==='PERDIDA'?'pill-r':'pill-y';
+        const posPill = d.pos==='LARGO'?'pill-g':'pill-r';
+        return `<tr>
+          <td>${d.fecha}</td>
+          <td><span class="pill ${cuentaPill}">${d.cuenta}</span></td>
+          <td><strong>${d.activo}</strong></td>
+          <td><span class="pill ${posPill}">${d.pos}</span></td>
+          <td>${d.crtH||'—'}</td>
+          <td>${d.crtHTF||'—'}</td>
+          <td>${d.dxy||'—'}</td>
+          <td>${d.alin||'—'}</td>
+          <td>${fmt(d.ratio,2)}x</td>
+          <td>$${fmt(d.riesgo)}</td>
+          <td>${fmt(d.slPips,1)}</td>
+          <td><span class="pill ${resPill}">${d.res}</span></td>
+          <td class="${bc}">${b!==0?fmtSign(b):'<span style="color:var(--mt)">—</span>'}</td>
+          <td>${d.inp||'—'}</td>
+          <td>${d.out||'—'}</td>
+          <td class="obs-cell" title="${obs}">${obs&&obs!=='NONE'?obs:'—'}</td>
+        </tr>`;
+      }).join('');
+}
+
+function render() {
+  const data = filteredData();
+  renderKPIs(data);
+  renderEquity(data);
+  renderPnLMes(data);
+  renderWL(data);
+  renderRD(data);
+  renderActivo(data);
+  renderCRT(data);
+  renderDXY(data);
+  renderWinRate(data);
+  renderRatio(data);
+  renderHora(data);
+  renderTable(data);
+}
+
+// GOOGLE SHEETS SYNC
+function csvParse(t){const rows=[];let row=[],f='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(c==='"')q=!q;else if(c===','&&!q){row.push(f.trim());f='';}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&t[i+1]==='\n')i++;row.push(f.trim());f='';if(row.some(x=>x!==''))rows.push(row);row=[];}else f+=c;}if(f||row.length){row.push(f.trim());if(row.some(x=>x!==''))rows.push(row);}return rows;}
+function burl(u){const id=(u.match(/\/d\/([a-zA-Z0-9_-]+)/)||[])[1];const gid=(u.match(/[?&#]gid=(\d+)/)||[])[1]||'0';return id?`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`:u;}
+
+async function syncSheet() {
+  const raw=document.getElementById('su').value.trim(); if(!raw)return;
+  document.getElementById('sl').textContent='Sincronizando…';
+  try{
+    const r=await fetch(burl(raw)); if(!r.ok) throw new Error('HTTP '+r.status);
+    const txt=await r.text();
+    const rows=csvParse(txt).slice(2).filter(r=>r[0]&&r[0].match(/\d/));
+    if(!rows.length) throw new Error('Sin datos');
+    RAW.length=0;
+    rows.forEach(r=>{
+      RAW.push({fecha:r[0],cuenta:r[1],activo:r[2],crtH:r[3]||'',crtHTF:r[4]||'',alin:r[5]||'',dxy:r[6]||'',pos:r[7]||'',lote:parseFloat(r[8])||0,riesgo:parseFloat(r[9])||0,ratio:parseFloat(r[10])||1,slPips:parseFloat(r[11])||0,res:(r[12]||'').toUpperCase(),inp:r[13]||'',out:r[14]||'',ben:parseFloat((r[15]||'').replace(',','.'))||0,obs:r[16]||'',mes:r[18]||''});
+    });
+    buildTblChips();
+    render();
+    document.getElementById('sl').textContent='Sync: '+new Date().toLocaleTimeString('es-AR');
+  } catch(e){
+    document.getElementById('sl').textContent='Error: '+e.message;
+  }
+}
+
+// EQUITY MODAL
+let eqModalChart = null;
+
+function openEquityModal() {
+  const src = CH['cEq'];
+  if (!src) return;
+  document.getElementById('eqModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => {
+    if (eqModalChart) { eqModalChart.destroy(); eqModalChart = null; }
+    const cfg = JSON.parse(JSON.stringify({ type: src.config.type, data: src.config.data, options: src.config.options || {} }));
+    cfg.options.responsive = true;
+    cfg.options.maintainAspectRatio = false;
+    cfg.options.animation = false;
+    cfg.options.plugins = cfg.options.plugins || {};
+    cfg.options.plugins.zoom = {
+      zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'xy' },
+      pan:  { enabled: true, mode: 'xy' }
+    };
+    if (cfg.options.scales) {
+      ['x','y'].forEach(ax => {
+        if (cfg.options.scales[ax]) {
+          cfg.options.scales[ax].ticks = { ...(cfg.options.scales[ax].ticks||{}), color:'#8892a4', font:{size:11} };
+        }
+      });
+    }
+    // Regenerate gradient for modal canvas
+    const mCtx = document.getElementById('eqModalCanvas').getContext('2d');
+    cfg.data.datasets[0].backgroundColor = (() => {
+      const g = mCtx.createLinearGradient(0,0,0,400);
+      g.addColorStop(0,'rgba(0,212,255,.18)'); g.addColorStop(1,'rgba(0,212,255,0)'); return g;
+    })();
+    eqModalChart = new Chart(mCtx, cfg);
+  }, 60);
+}
+
+function closeEqModal() {
+  document.getElementById('eqModal').classList.remove('open');
+  document.body.style.overflow = '';
+  if (eqModalChart) { eqModalChart.destroy(); eqModalChart = null; }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEqModal(); });
+document.getElementById('eqModalCanvas').addEventListener('dblclick', () => eqModalChart && eqModalChart.resetZoom());
+
+// INIT
+buildTblChips();
+render();
+syncSheet();
+setInterval(syncSheet, 5*60*1000);
+</script>
+</body>
+</html>
