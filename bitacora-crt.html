@@ -132,7 +132,7 @@ footer{text-align:center;font-size:9px;color:var(--mt);padding:20px 0 8px;letter
 
 <!-- HEADER -->
 <!-- Hidden sync input -->
-<input type="hidden" id="su" value="https://docs.google.com/spreadsheets/d/1OJIb94FYsLI8uso55YqTySMAvxVGANX8/export?format=csv">
+<input type="hidden" id="su" value="https://docs.google.com/spreadsheets/d/1OJIb94FYsLI8uso55YqTySMAvxVGANX8/gviz/tq?tqx=out:csv&sheet=EURUSD">
 
 <header>
   <div class="hd-left">
@@ -621,7 +621,7 @@ function render() {
 
 // GOOGLE SHEETS SYNC
 function csvParse(t){const rows=[];let row=[],f='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(c==='"')q=!q;else if(c===','&&!q){row.push(f.trim());f='';}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&t[i+1]==='\n')i++;row.push(f.trim());f='';if(row.some(x=>x!==''))rows.push(row);row=[];}else f+=c;}if(f||row.length){row.push(f.trim());if(row.some(x=>x!==''))rows.push(row);}return rows;}
-function burl(u){const id=(u.match(/\/d\/([a-zA-Z0-9_-]+)/)||[])[1];const gid=(u.match(/[?&#]gid=(\d+)/)||[])[1]||'0';return id?`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`:u;}
+function burl(u){if(u.includes('gviz/tq'))return u;const id=(u.match(/\/d\/([a-zA-Z0-9_-]+)/)||[])[1];const gid=(u.match(/[?&#]gid=(\d+)/)||[])[1]||'0';return id?`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`:u;}
 
 async function syncSheet() {
   const raw=document.getElementById('su').value.trim(); if(!raw)return;
