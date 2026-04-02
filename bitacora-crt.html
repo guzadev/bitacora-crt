@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRT Dashboard — Journal de Trading</title>
+<title>CRT Dashboard · GAP</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
@@ -281,7 +281,7 @@ footer{text-align:center;font-size:9px;color:var(--mt);padding:20px 0 8px;letter
   </div>
 </div>
 
-<footer>BITACORA CRT DASHBOARD · MÉTODO CRT · 2026</footer>
+<footer>BITACORA CRT · DASHBOARD · GUSTAVO PAZ</footer>
 </div>
 
 <!-- EQUITY MODAL -->
@@ -443,7 +443,7 @@ function bo(extra={}) {
 function renderEquity(data) {
   const rl = data.filter(d=>d.cuenta==='REAL').sort((a,b)=>a.fecha.localeCompare(b.fecha));
   let cum=0; const labels=[], vals=[], ptColors=[];
-  rl.forEach(d=>{cum=+(cum+d.ben).toFixed(2); labels.push(d.fecha.slice(5)); vals.push(cum); ptColors.push(d.ben>=0?'#00e87a':'#c8d4e0');});
+  rl.forEach(d=>{cum=+(cum+d.ben).toFixed(2); labels.push(d.fecha.slice(8)+'/'+d.fecha.slice(5,7)); vals.push(cum); ptColors.push(d.ben>=0?'#00e87a':'#c8d4e0');});
   mk('cEq','line',{labels,datasets:[{label:'PnL USD',data:vals,borderColor:'#00d4ff',backgroundColor:ctx=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,'rgba(0,212,255,.18)');g.addColorStop(1,'rgba(0,212,255,0)');return g;},borderWidth:2,fill:true,tension:.35,pointRadius:4,pointBackgroundColor:ptColors,pointBorderColor:ptColors}]},bo());
 }
 
@@ -585,9 +585,10 @@ async function syncSheet() {
     const txt=await r.text();
     const rows=csvParse(txt).filter(r=>r[0]&&r[0].match(/\d/));
     if(!rows.length) throw new Error('Sin datos');
+    function normDate(s){const p=s.split('/');if(p.length===3&&p[2].length===4)return `${p[2]}-${p[0].padStart(2,'0')}-${p[1].padStart(2,'0')}`;return s;}
     RAW.length=0;
     rows.forEach(r=>{
-      RAW.push({fecha:r[0],cuenta:r[1],activo:r[2],crtH:r[3]||'',crtHTF:r[4]||'',alin:r[5]||'',dxy:r[6]||'',pos:r[7]||'',lote:parseFloat(r[8])||0,riesgo:parseFloat(r[9])||0,ratio:parseFloat(r[10])||1,slPips:parseFloat(r[11])||0,res:(r[12]||'').toUpperCase(),inp:r[13]||'',out:r[14]||'',ben:parseFloat((r[15]||'').replace(',','.'))||0,obs:r[16]||'',mes:r[18]||''});
+      RAW.push({fecha:normDate(r[0]),cuenta:r[1],activo:r[2],crtH:r[3]||'',crtHTF:r[4]||'',alin:r[5]||'',dxy:r[6]||'',pos:r[7]||'',lote:parseFloat(r[8])||0,riesgo:parseFloat(r[9])||0,ratio:parseFloat(r[10])||1,slPips:parseFloat(r[11])||0,res:(r[12]||'').toUpperCase(),inp:r[13]||'',out:r[14]||'',ben:parseFloat((r[15]||'').replace(',','.'))||0,obs:r[16]||'',mes:r[18]||''});
     });
     buildTblChips();
     render();
