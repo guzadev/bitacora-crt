@@ -437,7 +437,8 @@ function buildTblChips() {
 
 // RENDER KPIs
 function renderKPIs(data) {
-  const rl = data.filter(d=>d.cuenta==='REAL');
+  const rl = data;
+  const cuentaLabel = filters.cuenta === 'REAL' ? 'REAL' : filters.cuenta === 'DEMO' ? 'DEMO' : 'TODAS';
   const W=rl.filter(d=>d.res==='GANADA'), L=rl.filter(d=>d.res==='PERDIDA'), B=rl.filter(d=>d.res==='BE');
   const n=rl.length, wr=n?(W.length/n*100).toFixed(1):0;
   const pnl=rl.reduce((s,d)=>s+d.ben,0);
@@ -448,7 +449,7 @@ function renderKPIs(data) {
   const al=L.length?(Math.abs(L.reduce((s,d)=>s+d.ben,0)/L.length)).toFixed(2):0;
 
   const kpis = [
-    {l:'Trades REAL',  v:n,       s:`${W.length}G / ${L.length}P / ${B.length}BE`, c:'var(--ac)'},
+    {l:'Trades '+cuentaLabel, v:n, s:`${W.length}G / ${L.length}P / ${B.length}BE`, c:'var(--ac)'},
     {l:'Win Rate',     v:wr+'%',  s:'tasa de éxito',   c:parseFloat(wr)>=50?'var(--gn)':'var(--rd)'},
     {l:'PnL Total',    v:(pnl>=0?'+':'')+pnl.toFixed(2), s:'USD acumulado', c:pnl>=0?'var(--gn)':'var(--rd)'},
     {l:'Ratio Prom.',  v:ar,      s:'riesgo/beneficio', c:'var(--a2)'},
