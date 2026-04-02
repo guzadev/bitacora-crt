@@ -630,7 +630,7 @@ async function syncSheet() {
   try{
     const r=await fetch(burl(raw)); if(!r.ok) throw new Error('HTTP '+r.status);
     const txt=await r.text();
-    const rows=csvParse(txt).slice(2).filter(r=>r[0]&&r[0].match(/\d/));
+    const rows=csvParse(txt).filter(r=>r[0]&&r[0].match(/\d/));
     if(!rows.length) throw new Error('Sin datos');
     RAW.length=0;
     rows.forEach(r=>{
